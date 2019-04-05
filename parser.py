@@ -64,6 +64,7 @@ def parse_file( fname, edges, polygons, csystems, screen, color ):
     f = open(fname)
     lines = f.readlines()
     temp = []
+    currang = [0,0,0]
 
     step = 100
     step_3d = 20
@@ -115,53 +116,72 @@ def parse_file( fname, edges, polygons, csystems, screen, color ):
 
         elif line == 'circle':
             #print 'CIRCLE\t' + str(args)
-            add_circle(edges,
+            add_circle(temp,
                        float(args[0]), float(args[1]), float(args[2]),
                        float(args[3]), step)
+            matrix_mult(csystems[-1],temp)
+            for i in temp:
+                edges.append(i)
+            temp = []
 
         elif line == 'hermite' or line == 'bezier':
             #print 'curve\t' + line + ": " + str(args)
-            add_curve(edges,
+            add_curve(temp,
                       float(args[0]), float(args[1]),
                       float(args[2]), float(args[3]),
                       float(args[4]), float(args[5]),
                       float(args[6]), float(args[7]),
                       step, line)
+            matrix_mult(csystems[-1],temp)
+            for i in temp:
+                edges.append(i)
+            temp = []
 
         elif line == 'line':
             #print 'LINE\t' + str(args)
-
-            add_edge( edges,
+            add_edge( temp,
                       float(args[0]), float(args[1]), float(args[2]),
                       float(args[3]), float(args[4]), float(args[5]) )
+            matrix_mult(csystems[-1],temp)
+            for i in temp:
+                edges.append(i)
+            temp = []
 
         elif line == 'scale':
             #print 'SCALE\t' + str(args)
             t = make_scale(float(args[0]), float(args[1]), float(args[2]))
-            matrix_mult(t, csystems[-1])
+            matrix_mult(csystems[-1], t)
+            csystems[-1] = t
 
         elif line == 'move':
             #print 'MOVE\t' + str(args)
             t = make_translate(float(args[0]), float(args[1]), float(args[2]))
-            matrix_mult(t, csystems[-1])
+            matrix_mult(csystems[-1], t)
+            csystems[-1] = t
 
         elif line == 'rotate':
             #print 'ROTATE\t' + str(args)
             theta = float(args[1]) * (math.pi / 180)
+            currorg = csystems[-1][3][0:3]
 
             if args[0] == 'x':
                 t = make_rotX(theta)
+                currang[0] = (currang[0] + theta) % (2 * math.pi)
             elif args[0] == 'y':
                 t = make_rotY(theta)
+                currang[1] = (currang[1] + theta) % (2 * math.pi)
             else:
                 t = make_rotZ(theta)
-            matrix_mult(t, csystems[-1])
+                currang[2] = (currang[2] + theta) % (2 * math.pi)
+
+            matrix_mult(csystems[-1], t)
+            csystems[-1] = t
 
         elif line == 'ident':
             ident(csystems[-1])
 
         elif line == 'apply':
-            matrix_mult( csystems[-1], edges )
+            matrix_mult( csystems[-1], temp )
             matrix_mult( csystems[-1], polygons )
 
         elif line == 'clear':
